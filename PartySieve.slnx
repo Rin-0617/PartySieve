@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PartySieve.csproj" />
+  <Project Path="PartySieve.Tests/PartySieve.Tests.csproj" />
+</Solution>

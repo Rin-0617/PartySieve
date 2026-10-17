@@ -1,0 +1,30 @@
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>0.1.0.0</Version>
+    <Author>Rin</Author>
+    <Name>PartySieve</Name>
+    <MinimumDalamudVersion>15.0.0.0</MinimumDalamudVersion>
+    <Punchline>PT募集のスパム除去・高機能フィルター・募集主DC表示</Punchline>
+    <Description>リージョン内フリーマッチングで増えたパーティ募集から、検索妨害のような募集を非表示にし、AND/OR/正規表現のルールで絞り込み、募集主のホームDCを表示します。</Description>
+    <ApplicableVersion>any</ApplicableVersion>
+    <DalamudApiLevel>15</DalamudApiLevel>
+    <LoadRequiredState>0</LoadRequiredState>
+    <LoadSync>false</LoadSync>
+    <CanUnloadAsync>false</CanUnloadAsync>
+    <LoadPriority>0</LoadPriority>
+    <AcceptsFeedback>false</AcceptsFeedback>
+    <AssemblyName>PartySieve</AssemblyName>
+    <RootNamespace>PartySieve</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**;PartySieve.Tests\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="plugin.json" CopyToOutputDirectory="PreserveNewest" TargetPath="PartySieve.json" />
+  </ItemGroup>
+</Project>
