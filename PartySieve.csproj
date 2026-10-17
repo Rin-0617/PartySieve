@@ -11,6 +11,7 @@
     <MinimumDalamudVersion>15.0.0.0</MinimumDalamudVersion>
     <Punchline>PT募集のスパム除去・高機能フィルター・募集主DC表示</Punchline>
     <Description>リージョン内フリーマッチングで増えたパーティ募集から、検索妨害のような募集を非表示にし、AND/OR/正規表現のルールで絞り込み、募集主のホームDCを表示します。</Description>
+    <RepoUrl>https://github.com/Rin-0617/PartySieve</RepoUrl>
     <ApplicableVersion>any</ApplicableVersion>
     <DalamudApiLevel>15</DalamudApiLevel>
     <LoadRequiredState>0</LoadRequiredState>

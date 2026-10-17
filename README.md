@@ -19,11 +19,14 @@ PartySieveは、検索妨害のような募集を自動で隠し、条件を組�
 
 ## 導入
 
-現在は開発版のみです。
+カスタムプラグインリポジトリ:
 
-1. ビルドしたファイル（`PartySieve.dll`、`PartySieve.json`、`PartySieve.deps.json`）を任意のフォルダに置きます。
-2. `/xlsettings` の試験的機能から、Dev Plugin Locationsに `PartySieve.dll` のパスを追加します。
-3. `/xlplugins` でPartySieveを有効にします。
+```text
+https://raw.githubusercontent.com/Rin-0617/RinPlugins/main/pluginmaster.json
+```
+
+Dalamud設定の試験的機能からCustom Plugin Repositoriesへ上記URLを追加し、プラグインインストーラーからPartySieveを導入してください。
+RaidFlowなど、Rinの他のプラグインも同じURLから導入できます。
 
 ## 使い方
 
