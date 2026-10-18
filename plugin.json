@@ -2,7 +2,7 @@
   "Author": "Rin",
   "Name": "PartySieve",
   "InternalName": "PartySieve",
-  "AssemblyVersion": "0.1.0.0",
+  "AssemblyVersion": "0.1.1.0",
   "MinimumDalamudVersion": "15.0.0.0",
   "Punchline": "PT募集のスパム除去・高機能フィルター・募集主DC表示",
   "Description": "リージョン内フリーマッチングで増えたパーティ募集から、検索妨害のような募集を非表示にし、AND/OR/正規表現のルールで絞り込み、募集主のホームDCを表示します。",
