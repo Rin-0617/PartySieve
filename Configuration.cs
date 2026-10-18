@@ -11,7 +11,7 @@ public sealed class Configuration : IPluginConfiguration
     [NonSerialized]
     private IDalamudPluginInterface? pluginInterface;
 
-    private const int CurrentVersion = 4;
+    private const int CurrentVersion = 5;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -88,6 +88,12 @@ public sealed class Configuration : IPluginConfiguration
                     rule.Conditions.RemoveAt(empty);
                 }
             }
+        }
+
+        // v4 までの初期ルールには、ロドストの短縮 URL（ffxiv.link）が入っていなかった。
+        if (this.Version < 5)
+        {
+            FilterRule.AddLodestoneShortLink(this.Rules);
         }
     }
 

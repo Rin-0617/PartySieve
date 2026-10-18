@@ -108,23 +108,34 @@ public sealed class FilterRule
     /// <summary>v2 までの初期ルールの名前。移行時に新しい初期ルールへ置き換える。</summary>
     public const string LegacyDefaultRuleName = "RMT・外部URL";
 
+    public const string RmtRuleName = "RMT・外部サイト";
+
+    public const string StaticRuleName = "固定募集（Discord・ロドストのURL）";
+
+    /// <summary>ロドストの公式の短縮 URL（https://ffxiv.link/...）。</summary>
+    public const string LodestoneShortLink = "ffxiv.link";
+
+    private const string LodestoneHost = "finalfantasyxiv.com";
+
     public static List<FilterRule> CreateDefault() =>
     [
         new()
         {
             // Discord とロドストの URL は固定募集でよく使われるので、ここでは隠さない（下のルールで扱う）。
             // 短縮 URL は行き先が見えないので、RMT と同じ扱いで隠す。
-            Name = "RMT・外部サイト",
+            Name = RmtRuleName,
             Action = RuleAction.Hide,
             Conditions =
             [
                 Contains("RMT"),
                 Contains("http", ConditionJoiner.Or),
                 NotContains("discord"),
-                NotContains("finalfantasyxiv.com"),
+                NotContains(LodestoneHost),
+                NotContains(LodestoneShortLink),
                 Contains("www.", ConditionJoiner.Or),
                 NotContains("discord"),
-                NotContains("finalfantasyxiv.com"),
+                NotContains(LodestoneHost),
+                NotContains(LodestoneShortLink),
                 new()
                 {
                     Joiner = ConditionJoiner.Or,
@@ -137,16 +148,48 @@ public sealed class FilterRule
         {
             // 固定を探している人はこのルールを無効にする。
             // 「VCはDiscord」のような野良募集を巻き込まないよう、URL の形だけを対象にする。
-            Name = "固定募集（Discord・ロドストのURL）",
+            Name = StaticRuleName,
             Action = RuleAction.Hide,
             Conditions =
             [
                 Contains("discord.gg"),
                 Contains("discord.com", ConditionJoiner.Or),
-                Contains("finalfantasyxiv.com", ConditionJoiner.Or),
+                Contains(LodestoneHost, ConditionJoiner.Or),
+                Contains(LodestoneShortLink, ConditionJoiner.Or),
             ],
         },
     ];
+
+    /// <summary>
+    /// v4 までの初期ルールに、ロドストの短縮 URL（ffxiv.link）の行を足す。
+    /// 初期ルールを書き換えている場合も、ロドストの URL を扱っている行の隣に足すだけで、他の行には触れない。
+    /// </summary>
+    public static void AddLodestoneShortLink(List<FilterRule> rules)
+    {
+        foreach (var rule in rules)
+        {
+            if (rule.Conditions.Exists(c => c.Text.Contains(LodestoneShortLink, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            if (rule.Name == RmtRuleName)
+            {
+                for (var i = rule.Conditions.Count - 1; i >= 0; i--)
+                {
+                    var condition = rule.Conditions[i];
+                    if (condition.Operator == ConditionOperator.NotContains && condition.Text == LodestoneHost)
+                    {
+                        rule.Conditions.Insert(i + 1, NotContains(LodestoneShortLink));
+                    }
+                }
+            }
+            else if (rule.Name == StaticRuleName)
+            {
+                rule.Conditions.Add(Contains(LodestoneShortLink, ConditionJoiner.Or));
+            }
+        }
+    }
 
     private static RuleCondition Contains(string text, ConditionJoiner joiner = ConditionJoiner.And) =>
         new() { Joiner = joiner, Text = text };

@@ -160,6 +160,7 @@ public class FilterTests
     [InlineData("100万gil 即納", "RMT・外部サイト")]
     [InlineData("固定募集 https://discord.gg/abcd", "固定募集（Discord・ロドストのURL）")]
     [InlineData("詳細 jp.finalfantasyxiv.com/lodestone/pt/xxx", "固定募集（Discord・ロドストのURL）")]
+    [InlineData("にて！→https://ffxiv.link/0145057", "固定募集（Discord・ロドストのURL）")]
     [InlineData("クリア目的 マクロはぬけまる", null)]
     [InlineData("VCはDiscord使用 聞き専可", null)]
     public void DefaultRules(string description, string? hiddenBy)
@@ -174,6 +175,38 @@ public class FilterTests
         }
 
         Assert.Equal([$"ルール「{hiddenBy}」"], result.Reasons);
+    }
+
+    [Fact]
+    public void DisablingStaticRuleShowsLodestoneShortLinks()
+    {
+        var filter = new ListingFilter();
+        var rules = FilterRule.CreateDefault();
+        rules[1].Enabled = false;
+        Assert.False(filter.Evaluate(Listing(1, "固定募集 https://ffxiv.link/0145057"), rules, new SpamSettings(), Now).Hidden);
+    }
+
+    [Fact]
+    public void MigrationAddsLodestoneShortLinkToOldDefaults()
+    {
+        // v4 までの初期ルール（ffxiv.link の行がない）。
+        var rules = FilterRule.CreateDefault();
+        foreach (var rule in rules)
+        {
+            rule.Conditions.RemoveAll(c => c.Text == FilterRule.LodestoneShortLink);
+        }
+
+        var expected = FilterRule.CreateDefault().Select(r => r.Conditions.Count).ToList();
+        FilterRule.AddLodestoneShortLink(rules);
+        FilterRule.AddLodestoneShortLink(rules);
+        Assert.Equal(expected, rules.Select(r => r.Conditions.Count).ToList());
+
+        var filter = new ListingFilter();
+        var result = filter.Evaluate(Listing(1, "固定 https://ffxiv.link/0145057"), rules, new SpamSettings(), Now);
+        Assert.Equal(["ルール「固定募集（Discord・ロドストのURL）」"], result.Reasons);
+
+        rules[1].Enabled = false;
+        Assert.False(filter.Evaluate(Listing(2, "固定 https://ffxiv.link/0145057"), rules, new SpamSettings(), Now).Hidden);
     }
 
     [Fact]
