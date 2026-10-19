@@ -280,3 +280,37 @@ public class DataCenterExclusionTests
         Assert.False(new ListingFilter().Matches(rule, Host("Mana")));
     }
 }
+
+public class HostNameMatchTests
+{
+    private static readonly System.Numerics.Vector4 Mana = new(0.85f, 0.55f, 1.00f, 1f);
+    private static readonly System.Numerics.Vector4 Gaia = new(1.00f, 0.78f, 0.25f, 1f);
+
+    [Theory]
+    [InlineData("Sumomommmm Momonoki", true)]
+    [InlineData("Sumomommmm Momono…", true)]
+    [InlineData("Sumomommmm Momono...", true)]
+    [InlineData("Sumomommmm Momono", false)]
+    [InlineData("Other Person", false)]
+    public void EllipsizedNamesMatchByPrefix(string text, bool expected)
+    {
+        var colors = new Dictionary<string, System.Numerics.Vector4> { ["Sumomommmm Momonoki"] = Mana };
+        Assert.Equal(expected, PartySieve.Services.NativeListDecorator.TryFindHost(colors, text, out var host, out var color));
+        if (expected)
+        {
+            Assert.Equal("Sumomommmm Momonoki", host);
+            Assert.Equal(Mana, color);
+        }
+    }
+
+    [Fact]
+    public void AmbiguousPrefixIsNotPainted()
+    {
+        var colors = new Dictionary<string, System.Numerics.Vector4>
+        {
+            ["Sumomommmm Momonoki"] = Mana,
+            ["Sumomommmm Momonoya"] = Gaia,
+        };
+        Assert.False(PartySieve.Services.NativeListDecorator.TryFindHost(colors, "Sumomommmm Momono…", out _, out _));
+    }
+}

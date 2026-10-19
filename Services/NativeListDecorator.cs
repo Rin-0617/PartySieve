@@ -155,7 +155,7 @@ public sealed unsafe class NativeListDecorator : IDisposable
         }
 
         var text = new ReadOnlySeString(raw).ExtractText().Trim();
-        if (text.Length == 0 || !this.hostColors.TryGetValue(text, out var color))
+        if (text.Length == 0 || !TryFindHost(this.hostColors, text, out var host, out var color))
         {
             return;
         }
@@ -163,7 +163,37 @@ public sealed unsafe class NativeListDecorator : IDisposable
         var original = raw.ToArray();
         var written = Recolor(original, color);
         SetText(node, written);
-        this.painted[key] = new Painted(text, color, original, written);
+        this.painted[key] = new Painted(host, color, original, written);
+    }
+
+    /// <summary>
+    /// 画面の文字から募集主を探す。長い名前は一覧で末尾が「…」に省略されるので、
+    /// その前の部分で始まる募集主が全員同じ DC なら、その色を使う。
+    /// </summary>
+    public static bool TryFindHost(IReadOnlyDictionary<string, Vector4> hostColors, string text, out string host, out Vector4 color)
+    {
+        if (hostColors.TryGetValue(text, out color))
+        {
+            host = text;
+            return true;
+        }
+
+        host = string.Empty;
+        var prefix = text.EndsWith('…') ? text[..^1] : text.EndsWith("...", StringComparison.Ordinal) ? text[..^3] : null;
+        if (string.IsNullOrWhiteSpace(prefix))
+        {
+            return false;
+        }
+
+        var matches = hostColors.Where(p => p.Key.StartsWith(prefix, StringComparison.Ordinal)).ToList();
+        if (matches.Count == 0 || matches.Any(p => p.Value != matches[0].Value))
+        {
+            return false;
+        }
+
+        host = matches[0].Key;
+        color = matches[0].Value;
+        return true;
     }
 
     private void Restore(AtkUnitBase* addon)
