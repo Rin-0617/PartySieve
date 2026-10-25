@@ -4,6 +4,7 @@ using Dalamud.Interface.Windowing;
 using PartySieve.Filtering;
 using PartySieve.Models;
 using PartySieve.Services;
+using RinUi;
 
 namespace PartySieve.Windows;
 
@@ -39,6 +40,19 @@ public sealed class ConfigWindow : Window
     }
 
     public override void Draw()
+    {
+        Theme.Push();
+        try
+        {
+            this.DrawTabs();
+        }
+        finally
+        {
+            Theme.Pop();
+        }
+    }
+
+    private void DrawTabs()
     {
         if (ImGui.BeginTabBar("PartySieveTabs"))
         {
