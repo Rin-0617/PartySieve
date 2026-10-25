@@ -11,6 +11,7 @@ namespace PartySieve.Windows;
 public sealed class ConfigWindow : Window
 {
     private static readonly string[] ViewLabels = ["すべて", "表示中のみ", "非表示のみ"];
+    private static readonly string[] NavLabels = ["全般", "スパム判定", "ルール", "受信ログ"];
     private static readonly Vector4 HiddenColor = new(1f, 0.45f, 0.45f, 1f);
 
     private readonly Configuration configuration;
@@ -22,6 +23,7 @@ public sealed class ConfigWindow : Window
     private bool newOnly;
     private bool latestBatchOnly;
     private string listSearch = string.Empty;
+    private int tab;
 
     public ConfigWindow(
         Configuration configuration,
@@ -36,54 +38,35 @@ public sealed class ConfigWindow : Window
         this.ruleEditor = ruleEditor;
         this.Size = new Vector2(940, 620);
         this.SizeCondition = ImGuiCond.FirstUseEver;
-        this.TitleBarButtons.Add(SupportLink.CreateTitleBarButton());
     }
 
     public override void Draw()
     {
         Theme.Push();
-        try
+        this.tab = Sidebar.Draw("PartySieve", Plugin.VersionText, NavLabels, this.tab, SupportLink.OfuseUrl);
+        if (ImGui.BeginChild("##content", Vector2.Zero, true))
         {
-            this.DrawTabs();
+            switch (this.tab)
+            {
+                case 1:
+                    this.DrawSpamTab();
+                    break;
+                case 2:
+                    this.ruleEditor.DrawHelp();
+                    this.ruleEditor.DrawRules();
+                    this.ruleEditor.DrawTester();
+                    break;
+                case 3:
+                    this.DrawLogTab();
+                    break;
+                default:
+                    this.DrawGeneralTab();
+                    break;
+            }
         }
-        finally
-        {
-            Theme.Pop();
-        }
-    }
 
-    private void DrawTabs()
-    {
-        if (ImGui.BeginTabBar("PartySieveTabs"))
-        {
-            if (ImGui.BeginTabItem("全般"))
-            {
-                this.DrawGeneralTab();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("スパム判定"))
-            {
-                this.DrawSpamTab();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("ルール"))
-            {
-                this.ruleEditor.DrawHelp();
-                this.ruleEditor.DrawRules();
-                this.ruleEditor.DrawTester();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("受信ログ"))
-            {
-                this.DrawLogTab();
-                ImGui.EndTabItem();
-            }
-
-            ImGui.EndTabBar();
-        }
+        ImGui.EndChild();
+        Theme.Pop();
     }
 
     // ---- 全般 -------------------------------------------------------------------
