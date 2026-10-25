@@ -24,6 +24,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly WindowSystem windowSystem = new("PartySieve");
     private readonly ListingMonitor monitor;
     private readonly NativeListDecorator decorator;
+    private readonly NativeSearchExtender searchExtender;
     private readonly ConfigWindow configWindow;
     private readonly SearchPanel searchPanel;
 
@@ -45,10 +46,11 @@ public sealed class Plugin : IDalamudPlugin
 
         this.monitor = new ListingMonitor(this.configuration, partyFinderGui, log);
         this.decorator = new NativeListDecorator(this.configuration, this.monitor, addonLifecycle, gameGui);
+        this.searchExtender = new NativeSearchExtender(this.configuration, addonLifecycle, gameGui, log);
 
         var ruleEditor = new RuleEditor(this.configuration, this.monitor);
         this.configWindow = new ConfigWindow(this.configuration, this.monitor, ruleEditor, this.decorator);
-        this.searchPanel = new SearchPanel(this.configuration, this.monitor, ruleEditor, gameGui, this.OpenConfigUi);
+        this.searchPanel = new SearchPanel(this.configuration, this.monitor, ruleEditor, this.searchExtender, this.OpenConfigUi);
         this.windowSystem.AddWindow(this.configWindow);
         this.windowSystem.AddWindow(this.searchPanel);
 
@@ -67,6 +69,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         this.commandManager.RemoveHandler(CommandName);
         this.addonLifecycle.UnregisterListener(AddonEvent.PostSetup, this.LogPartyFinderAddon);
+        this.searchExtender.Dispose();
         this.decorator.Dispose();
         this.monitor.Dispose();
 

@@ -1,131 +1,96 @@
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
-using Dalamud.Game.NativeWrapper;
 using Dalamud.Interface.Windowing;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Component.GUI;
+using Dalamud.Utility;
 using PartySieve.Services;
 
 namespace PartySieve.Windows;
 
 /// <summary>
-/// 公式の「詳細検索」ウィンドウの右隣に張り付けて出す、高機能フィルターのパネル。
-/// 詳細検索が開いているあいだだけ表示する。
+/// 公式の「詳細検索」ウィンドウをネイティブに右へ広げ（<see cref="NativeSearchExtender"/>）、
+/// その空いた領域の中に、枠・タイトルバー・背景なしで高機能フィルターの中身を描く。
+/// 見た目は「詳細検索の窓がそのまま右に伸びて、中に機能が入っている」ようになる。
 /// </summary>
 public sealed class SearchPanel : Window
 {
-    /// <summary>公式の詳細検索ウィンドウのアドオン名。</summary>
-    public const string SearchAddonName = "LookingForGroupSearch";
-
     private readonly Configuration configuration;
     private readonly ListingMonitor monitor;
     private readonly RuleEditor ruleEditor;
-    private readonly IGameGui gameGui;
+    private readonly NativeSearchExtender extender;
     private readonly Action openConfig;
 
     public SearchPanel(
         Configuration configuration,
         ListingMonitor monitor,
         RuleEditor ruleEditor,
-        IGameGui gameGui,
+        NativeSearchExtender extender,
         Action openConfig)
-        : base($"PartySieve {Plugin.VersionText} 高機能フィルター###PartySieveSearchPanel", ImGuiWindowFlags.NoCollapse)
+        : base(
+            "###PartySieveSearchPanel",
+            ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
+            | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoFocusOnAppearing
+            | ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoBringToFrontOnFocus)
     {
         this.configuration = configuration;
         this.monitor = monitor;
         this.ruleEditor = ruleEditor;
-        this.gameGui = gameGui;
+        this.extender = extender;
         this.openConfig = openConfig;
         this.IsOpen = true;
         this.RespectCloseHotkey = false;
         this.ShowCloseButton = false;
-        this.Size = new Vector2(440, 0);
-        this.SizeCondition = ImGuiCond.FirstUseEver;
-        this.TitleBarButtons.Add(SupportLink.CreateTitleBarButton());
+        this.DisableWindowSounds = true;
     }
 
     public override bool DrawConditions()
     {
-        if (!this.configuration.ShowSearchPanel)
+        if (!this.configuration.ShowSearchPanel || !this.extender.TryGetPanelArea(out var position, out var size))
         {
             return false;
         }
 
-        var addon = this.gameGui.GetAddonByName(SearchAddonName);
-        if (addon.IsNull || !addon.IsVisible)
-        {
-            return false;
-        }
-
-        // 毎フレーム、詳細検索の右端に隙間なく合わせる。高さもそろえる。
-        // Window はサイズにだけ ImGui の全体倍率を掛ける（位置には掛けない）ので、高さだけ倍率で割って渡す。
-        var (frameRight, frameTop, frameHeight) = GetFrameBounds(addon);
-        var height = frameHeight / ImGuiHelpers.GlobalScale;
-        this.Position = new Vector2(frameRight, frameTop);
+        // Window はサイズに ImGui の全体倍率を掛けるので、画素サイズを倍率で割って渡す（位置はそのまま画面座標）。
+        this.Position = position;
         this.PositionCondition = ImGuiCond.Always;
-        this.SizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = new Vector2(360, height),
-            MaximumSize = new Vector2(900, Math.Max(height, 300)),
-        };
+        this.Size = size / ImGuiHelpers.GlobalScale;
+        this.SizeCondition = ImGuiCond.Always;
         return true;
-    }
-
-    /// <summary>
-    /// 見えているウィンドウ枠の右端・上端・高さ。
-    /// ウィンドウノードはアドオン全体と同じ大きさで、緑の背景はその中に余白をとって描かれるので、
-    /// ウィンドウ部品の中でいちばん大きい表示中のナイングリッド（背景画像）の範囲を使う。
-    /// </summary>
-    private static unsafe (float Right, float Top, float Height) GetFrameBounds(AtkUnitBasePtr addon)
-    {
-        var unit = (AtkUnitBase*)addon.Address;
-        var frame = unit->WindowNode;
-        var fallback = (addon.X + addon.ScaledWidth, addon.Y, addon.ScaledHeight);
-        if (frame == null || frame->Component == null)
-        {
-            return fallback;
-        }
-
-        var manager = &frame->Component->UldManager;
-        AtkResNode* background = null;
-        for (var i = 0; i < manager->NodeListCount; i++)
-        {
-            var node = manager->NodeList[i];
-            if (node == null || node->Type != NodeType.NineGrid || !node->IsVisible())
-            {
-                continue;
-            }
-
-            if (background == null || node->Width * node->Height > background->Width * background->Height)
-            {
-                background = node;
-            }
-        }
-
-        if (background == null)
-        {
-            return fallback;
-        }
-
-        var width = background->Width * background->ScaleX * unit->Scale;
-        var height = background->Height * background->ScaleY * unit->Scale;
-        return (background->ScreenX + width, background->ScreenY, height);
     }
 
     public override void Draw()
     {
+        // タイトルバーが無いので、左に「設定」、右にプラグイン名・バージョン・支援ボタンを置く。
+        if (ImGui.SmallButton("設定"))
+        {
+            this.openConfig();
+        }
+
+        var title = $"PartySieve {Plugin.VersionText}";
+        var rightWidth = ImGui.CalcTextSize(title).X + ImGui.GetStyle().ItemSpacing.X + ImGui.GetFrameHeight();
+        ImGui.SameLine(Math.Max(ImGui.GetCursorPosX(), ImGui.GetWindowWidth() - rightWidth - ImGui.GetStyle().WindowPadding.X));
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextColored(RuleEditor.MutedColor, title);
+        ImGui.SameLine();
+        if (ImGuiComponents.IconButton(FontAwesomeIcon.Heart))
+        {
+            Util.OpenLink(SupportLink.OfuseUrl);
+        }
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("OFUSEで開発を応援する");
+        }
+
+        ImGui.Separator();
+
         var hide = this.configuration.HideMatches;
         if (ImGui.Checkbox("ルールとスパム判定で隠す", ref hide))
         {
             this.configuration.HideMatches = hide;
             this.ruleEditor.SaveAndReevaluate();
-        }
-
-        ImGui.SameLine();
-        if (ImGui.SmallButton("設定"))
-        {
-            this.openConfig();
         }
 
         var all = this.monitor.Snapshot();
